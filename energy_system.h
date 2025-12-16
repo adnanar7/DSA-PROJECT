@@ -21,6 +21,8 @@ private:
     int deviceCount;
     bool communitySetup;
     
+    void checkAndExecuteScheduledTasks();  // ← ADD THIS LINE
+    
 public:
     EnergyOptimizationSystem() : maxLoadCapacity(5000), deviceCount(0), communitySetup(false) {}
     

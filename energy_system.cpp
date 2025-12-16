@@ -286,7 +286,7 @@ void EnergyOptimizationSystem::viewHistory() {
 
 void EnergyOptimizationSystem::scheduleDevice() {
     char id[50];
-    int timeHour, duration;
+    int timeHour, timeMinute, duration;  // ← ADDED timeMinute
     
     cout << "\n--- Schedule Device ---" << endl;
     cout << "Device ID: ";
@@ -300,6 +300,19 @@ void EnergyOptimizationSystem::scheduleDevice() {
     
     cout << "Schedule time (hour 0-23): ";
     cin >> timeHour;
+    cout << "Schedule minute (0-59): ";  // ← NEW LINE
+    cin >> timeMinute;                     // ← NEW LINE
+    
+    // Validate input                      // ← NEW BLOCK
+    if (timeHour < 0 || timeHour > 23) {
+        cout << "Invalid hour! Must be 0-23." << endl;
+        return;
+    }
+    if (timeMinute < 0 || timeMinute > 59) {
+        cout << "Invalid minute! Must be 0-59." << endl;
+        return;
+    }
+    
     cout << "Duration (minutes): ";
     cin >> duration;
     
@@ -307,7 +320,8 @@ void EnergyOptimizationSystem::scheduleDevice() {
         (*device)->deviceID,
         (*device)->deviceName,
         timeHour,
-        duration,
+        timeMinute,  // ← NEW 4th parameter
+        duration,    // ← Now 5th parameter
         (*device)->priority,
         (*device)->isCritical
     );
@@ -317,7 +331,11 @@ void EnergyOptimizationSystem::scheduleDevice() {
     
     scheduler.enqueue(task);
     
+    cout << "DEBUG: Task enqueued. Queue size: " << scheduler.getSize() << endl;
+    
     cout << "\nDevice scheduled successfully!" << endl;
+    cout << "Scheduled for: " << timeHour << ":"   // ← NEW LINES
+         << (timeMinute < 10 ? "0" : "") << timeMinute << endl;
     cout << "Priority in queue: " << task.priority << endl;
     if ((*device)->isCritical) {
         cout << "*** CRITICAL device - will execute with highest priority ***" << endl;
@@ -331,6 +349,7 @@ void EnergyOptimizationSystem::scheduleDevice() {
 }
 
 void EnergyOptimizationSystem::viewSchedule() {
+    cout << "DEBUG: Viewing schedule. Queue size: " << scheduler.getSize() << endl;
     scheduler.display();
 }
 
@@ -450,10 +469,57 @@ void EnergyOptimizationSystem::displayMenu() {
     cout << "Choice: ";
 }
 
+void EnergyOptimizationSystem::checkAndExecuteScheduledTasks() {
+    // Get current hour and minute
+    time_t now = time(0);
+    struct tm* timeinfo = localtime(&now);
+    int currentHour = timeinfo->tm_hour;
+    int currentMinute = timeinfo->tm_min;  // ← ADDED
+    
+    // Check if any scheduled tasks are ready
+    while (!scheduler.isEmpty()) {
+        ScheduledTask task = scheduler.peek();
+        
+        // Check if task time has passed or is now
+        // Compare hour first, then minute         // ← UPDATED BLOCK
+        bool shouldExecute = false;
+        if (task.scheduledTime < currentHour) {
+            shouldExecute = true;  // Task hour has passed
+        } else if (task.scheduledTime == currentHour && task.scheduledMinute <= currentMinute) {
+            shouldExecute = true;  // Same hour, minute has arrived
+        }
+        
+        if (shouldExecute) {
+            scheduler.dequeue();  // Remove from queue
+            
+            // Find the device
+            Device** device = deviceRegistry.get(task.deviceID);
+            if (device && (*device)->status == "OFF") {
+                // Check if we have capacity
+                float currentLoad = getCurrentTotalLoad();
+                if (currentLoad + (*device)->consumptionRate <= maxLoadCapacity) {
+                    (*device)->turnOn();
+                    cout << "\n🔔 AUTO-EXECUTED: " << task.deviceName 
+                         << " (Scheduled for " << task.scheduledTime << ":"   // ← UPDATED
+                         << (task.scheduledMinute < 10 ? "0" : "") << task.scheduledMinute << ")" << endl;
+                } else {
+                    cout << "\n⚠️  Cannot auto-execute " << task.deviceName 
+                         << " - would exceed capacity" << endl;
+                }
+            }
+        } else {
+            // Future tasks - stop checking
+            break;
+        }
+    }
+}
+
 void EnergyOptimizationSystem::run() {
     int choice;
     
     while (true) {
+        checkAndExecuteScheduledTasks();
+        
         displayMenu();
         cin >> choice;
         

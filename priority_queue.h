@@ -8,17 +8,18 @@ using namespace std;
 struct ScheduledTask {
     string deviceID;
     string deviceName;
-    int scheduledTime;
+    int scheduledTime;      // Hour (0-23)
+    int scheduledMinute;    // NEW: Minute (0-59)
     int duration;
     int priority;
     bool isCritical;
     float estimatedCost;
     
-    ScheduledTask() : scheduledTime(0), duration(0), priority(5), 
-                      isCritical(false), estimatedCost(0) {}
+    ScheduledTask() : scheduledTime(0), scheduledMinute(0), duration(0), 
+                      priority(5), isCritical(false), estimatedCost(0) {}
     
-    ScheduledTask(string id, string name, int time, int dur, int prio, bool crit)
-        : deviceID(id), deviceName(name), scheduledTime(time), 
+    ScheduledTask(string id, string name, int time, int minute, int dur, int prio, bool crit)
+        : deviceID(id), deviceName(name), scheduledTime(time), scheduledMinute(minute),
           duration(dur), priority(prio), isCritical(crit), estimatedCost(0) {}
 };
 
@@ -43,7 +44,9 @@ private:
             int p = parent(index);
             if (heap[index].priority > heap[p].priority ||
                 (heap[index].priority == heap[p].priority && 
-                 heap[index].scheduledTime < heap[p].scheduledTime)) {
+                 (heap[index].scheduledTime < heap[p].scheduledTime ||
+                  (heap[index].scheduledTime == heap[p].scheduledTime && 
+                   heap[index].scheduledMinute < heap[p].scheduledMinute)))) {
                 swap(heap[index], heap[p]);
                 index = p;
             } else {
@@ -61,14 +64,18 @@ private:
             if (left < size && 
                 (heap[left].priority > heap[largest].priority ||
                  (heap[left].priority == heap[largest].priority && 
-                  heap[left].scheduledTime < heap[largest].scheduledTime))) {
+                  (heap[left].scheduledTime < heap[largest].scheduledTime ||
+                   (heap[left].scheduledTime == heap[largest].scheduledTime && 
+                    heap[left].scheduledMinute < heap[largest].scheduledMinute))))) {
                 largest = left;
             }
             
             if (right < size && 
                 (heap[right].priority > heap[largest].priority ||
                  (heap[right].priority == heap[largest].priority && 
-                  heap[right].scheduledTime < heap[largest].scheduledTime))) {
+                  (heap[right].scheduledTime < heap[largest].scheduledTime ||
+                   (heap[right].scheduledTime == heap[largest].scheduledTime && 
+                    heap[right].scheduledMinute < heap[largest].scheduledMinute))))) {
                 largest = right;
             }
             
@@ -135,7 +142,8 @@ public:
             cout << i + 1 << ". " << heap[i].deviceName 
                  << " | Priority: " << heap[i].priority
                  << (heap[i].isCritical ? " [CRITICAL]" : "")
-                 << " | Time: " << heap[i].scheduledTime
+                 << " | Time: " << heap[i].scheduledTime << ":" 
+                 << (heap[i].scheduledMinute < 10 ? "0" : "") << heap[i].scheduledMinute
                  << " | Duration: " << heap[i].duration << " min" << endl;
         }
     }
