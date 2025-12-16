@@ -34,22 +34,20 @@ void EnergyOptimizationSystem::addDevice() {
     }
 }
 
-
-// "Giving all the details of devices registered in the system"
 void EnergyOptimizationSystem::monitorDevices() {
     cout << "\n===== Device Monitoring =====" << endl;
-    Device* devices[100];  // making the array of 100 to store device Objects
+    Device* devices[100];
     int size;
-    deviceRegistry.getAllValues(devices, size);    // get all devicesObjects of devices stored in hashmap
+    deviceRegistry.getAllValues(devices, size);
     
     if (size == 0) {
         cout << "No devices registered." << endl;
         return;
     }
     
-    float totalConsumption = 0;  // total consumption of all devices
-    int criticalCount = 0;        // total critical devices
-    float criticalLoad = 0;        // total consumption of critical devices
+    float totalConsumption = 0;
+    int criticalCount = 0;
+    float criticalLoad = 0;
     
     cout << "\nID\t\tName\t\t\tRate(W)\t\tStatus\t\tPriority\tType" << endl;
     cout << "--------------------------------------------------------------------------------" << endl;
@@ -78,7 +76,7 @@ void EnergyOptimizationSystem::monitorDevices() {
     cout << "Load Capacity: " << maxLoadCapacity << " W" << endl;
     cout << "Load Percentage: " << (totalConsumption / maxLoadCapacity * 100) << "%" << endl;
     
-    if (totalConsumption > maxLoadCapacity * 0.9f) {   // if consumption exceeds 90% of capacity
+    if (totalConsumption > maxLoadCapacity * 0.9f) {
         cout << "\n*** WARNING: Approaching maximum load capacity! ***" << endl;
         cout << "*** Automatic load shedding may be triggered ***" << endl;
         cout << "*** Critical devices will remain protected ***" << endl;
@@ -196,7 +194,7 @@ bool EnergyOptimizationSystem::performLoadShedding(float requiredCapacity) {
     }
     
     float freedCapacity = 0;
-    int shedCount = 0;   // number of devices turned off
+    int shedCount = 0;
     
     for (int i = 0; i < nonCritCount && freedCapacity < requiredCapacity; i++) {
         cout << "Turning OFF: " << nonCritical[i]->deviceName 
@@ -331,8 +329,6 @@ void EnergyOptimizationSystem::scheduleDevice() {
     
     scheduler.enqueue(task);
     
-    cout << "DEBUG: Task enqueued. Queue size: " << scheduler.getSize() << endl;
-    
     cout << "\nDevice scheduled successfully!" << endl;
     cout << "Scheduled for: " << timeHour << ":"   // ← NEW LINES
          << (timeMinute < 10 ? "0" : "") << timeMinute << endl;
@@ -348,8 +344,8 @@ void EnergyOptimizationSystem::scheduleDevice() {
     }
 }
 
+
 void EnergyOptimizationSystem::viewSchedule() {
-    cout << "DEBUG: Viewing schedule. Queue size: " << scheduler.getSize() << endl;
     scheduler.display();
 }
 
@@ -468,7 +464,6 @@ void EnergyOptimizationSystem::displayMenu() {
     cout << "========================================" << endl;
     cout << "Choice: ";
 }
-
 void EnergyOptimizationSystem::checkAndExecuteScheduledTasks() {
     // Get current hour and minute
     time_t now = time(0);
