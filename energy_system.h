@@ -27,6 +27,7 @@ private:
     // ← NEW: File handling methods
     void saveAllData();
     void loadAllData(); 
+    void updateMyHomeConsumption();  // ← NEW: Update home when devices change 
     
 public:
     EnergyOptimizationSystem() : maxLoadCapacity(5000), deviceCount(0), communitySetup(false) {

@@ -112,6 +112,7 @@ void EnergyOptimizationSystem::toggleDevice() {
                 
                 if (performLoadShedding((*device)->consumptionRate)) {
                     (*device)->turnOn();
+                    updateMyHomeConsumption();  // ← NEW
                     cout << (*device)->deviceName << " turned ON (Critical device protected)" << endl;
                 } else {
                     cout << "Unable to free enough capacity. Cannot turn on device." << endl;
@@ -124,6 +125,7 @@ void EnergyOptimizationSystem::toggleDevice() {
         }
         
         (*device)->turnOn();
+        updateMyHomeConsumption();  // ← NEW
         cout << (*device)->deviceName << " turned ON." << endl;
         if ((*device)->isCritical) {
             cout << "[CRITICAL device - protected from load shedding]" << endl;
@@ -147,6 +149,8 @@ void EnergyOptimizationSystem::toggleDevice() {
         
         cout << (*device)->deviceName << " turned OFF." << endl;
         cout << "Energy consumed: " << units << " kWh" << endl;
+        
+        updateMyHomeConsumption();  // ← NEW
     }
 }
 
@@ -360,6 +364,9 @@ void EnergyOptimizationSystem::setupCommunity() {
     communityNetwork.addHome(home2);
     communityNetwork.addHome(home3);
     
+    // ← NEW: Update H001 with real current consumption
+    updateMyHomeConsumption();
+    
     communityNetwork.connectHomes(string("H001"), string("H002"), 0.5f);
     communityNetwork.connectHomes(string("H002"), string("H003"), 0.3f);
     communityNetwork.connectHomes(string("H001"), string("H003"), 0.8f);
@@ -518,6 +525,27 @@ void EnergyOptimizationSystem::loadAllData() {
     }
     
     cout << "🚀 System ready!" << endl;
+}
+
+// ← NEW: Update home consumption when devices change
+void EnergyOptimizationSystem::updateMyHomeConsumption() {
+    if (!communitySetup) return;  // Only if community is set up
+    
+    Home** myHome = communityNetwork.getHome("H001");
+    if (myHome && *myHome) {
+        float currentLoad = getCurrentTotalLoad();
+        (*myHome)->currentConsumption = currentLoad;
+        (*myHome)->updateEnergy();  // Recalculate excess energy
+        
+        // Optional: Show feedback
+        if ((*myHome)->excessEnergy < 0) {
+            cout << "⚠️  Your home is consuming more than producing (" 
+                 << -(*myHome)->excessEnergy << " W deficit)" << endl;
+        } else {
+            cout << "✅ Your home has excess energy (" 
+                 << (*myHome)->excessEnergy << " W available)" << endl;
+        }
+    }
 }
 
 void EnergyOptimizationSystem::run() {

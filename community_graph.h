@@ -120,6 +120,11 @@ public:
         }
     }
     
+    // ← NEW METHOD: Get a specific home
+    Home** getHome(string homeID) {
+        return homes.get(homeID);
+    }
+    
     void findAllNeighborsBFS(string startHomeID, string* neighbors, int& count);
     
     float findCheapestPath(string startHome, string targetHome, string* path, int& pathLength);
