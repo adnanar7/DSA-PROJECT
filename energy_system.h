@@ -9,6 +9,7 @@
 #include "history.h"
 #include "priority_queue.h"
 #include "community_graph.h"
+#include "file_manager.h"  // ← NEW: Added file manager
 using namespace std;
 
 class EnergyOptimizationSystem {
@@ -23,8 +24,18 @@ private:
 
     void checkAndExecuteScheduledTasks(); 
     
+    // ← NEW: File handling methods
+    void saveAllData();
+    void loadAllData(); 
+    
 public:
-    EnergyOptimizationSystem() : maxLoadCapacity(5000), deviceCount(0), communitySetup(false) {}
+    EnergyOptimizationSystem() : maxLoadCapacity(5000), deviceCount(0), communitySetup(false) {
+        loadAllData();  // ← NEW: Auto-load on startup
+    }
+    
+    ~EnergyOptimizationSystem() {
+        saveAllData();  // ← NEW: Auto-save on exit
+    }
     
     void addDevice();
     void monitorDevices();

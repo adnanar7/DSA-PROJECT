@@ -389,61 +389,7 @@ void EnergyOptimizationSystem::requestEnergy() {
 }
 
 void EnergyOptimizationSystem::generateReport() {
-    cout << "\n===== ENERGY CONSUMPTION REPORT =====" << endl;
-    
-    Device* devices[100];
-    int deviceSize;
-    deviceRegistry.getAllValues(devices, deviceSize);
-    cout << "Total Devices: " << deviceSize << endl;
-    
-    int activeCount = 0, criticalCount = 0, criticalActive = 0;
-    float totalLoad = 0, criticalLoad = 0;
-    
-    for (int i = 0; i < deviceSize; i++) {
-        if (devices[i]->isCritical) {
-            criticalCount++;
-            if (devices[i]->status == "ON") {
-                criticalActive++;
-                criticalLoad += devices[i]->consumptionRate;
-            }
-        }
-        if (devices[i]->status == "ON") {
-            activeCount++;
-            totalLoad += devices[i]->consumptionRate;
-        }
-    }
-    
-    cout << "Active Devices: " << activeCount << endl;
-    cout << "Critical Devices: " << criticalCount << " (" << criticalActive << " active)" << endl;
-    cout << "Current Load: " << totalLoad << " W" << endl;
-    cout << "Critical Load: " << criticalLoad << " W (" 
-         << (totalLoad > 0 ? (criticalLoad/totalLoad*100) : 0) << "%)" << endl;
-    
-    HistoryRecord records[100];
-    int historySize;
-    historyTracker.getAllRecords(records, historySize);
-    
-    float totalEnergy = 0;
-    for (int i = 0; i < historySize; i++) {
-        totalEnergy += records[i].unitsConsumed;
-    }
-    
-    cout << "\nTotal Historical Records: " << historySize << endl;
-    cout << "Total Energy Consumed: " << totalEnergy << " kWh" << endl;
-    cout << "Estimated Monthly Cost: Rs " << (totalEnergy * 15 * 30) << endl;
-    
-    cout << "\n--- System Status ---" << endl;
-    cout << "Load Capacity: " << maxLoadCapacity << " W" << endl;
-    cout << "Current Utilization: " << (maxLoadCapacity > 0 ? (totalLoad/maxLoadCapacity*100) : 0) << "%" << endl;
-    cout << "Available Capacity: " << (maxLoadCapacity - totalLoad) << " W" << endl;
-    
-    cout << "\n--- Savings Recommendations ---" << endl;
-    cout << "1. Shift high-power devices to off-peak hours (11 PM - 6 AM)" << endl;
-    cout << "2. Current load at " << (maxLoadCapacity > 0 ? (totalLoad/maxLoadCapacity*100) : 0) << "% capacity" << endl;
-    if (totalLoad > maxLoadCapacity * 0.7f) {
-        cout << "3. Consider load balancing to avoid peak charges" << endl;
-    }
-    cout << "4. Critical devices (" << criticalCount << ") are protected from load shedding" << endl;
+    FileManager::generateReport(deviceRegistry, historyTracker, scheduler, maxLoadCapacity, deviceCount);
 }
 
 void EnergyOptimizationSystem::displayMenu() {
@@ -460,6 +406,8 @@ void EnergyOptimizationSystem::displayMenu() {
     cout << "8.  Generate Report" << endl;
     cout << "9.  Request Energy from Community" << endl;
     cout << "10. View Critical Devices" << endl;
+    cout << "11. Save Data Now" << endl;              // ← NEW
+    cout << "12. Generate Complete Report File" << endl;  // ← NEW
     cout << "0.  Exit" << endl;
     cout << "========================================" << endl;
     cout << "Choice: ";
@@ -509,6 +457,69 @@ void EnergyOptimizationSystem::checkAndExecuteScheduledTasks() {
     }
 }
 
+// ← NEW: File handling implementations
+void EnergyOptimizationSystem::saveAllData() {
+    cout << "\n💾 Saving system data..." << endl;
+    bool success = true;
+    
+    if (!FileManager::saveDevices(deviceRegistry)) {
+        cout << "❌ Failed to save devices" << endl;
+        success = false;
+    }
+    
+    if (!FileManager::saveHistory(historyTracker)) {
+        cout << "❌ Failed to save history" << endl;
+        success = false;
+    }
+    
+    if (!FileManager::saveSchedule(scheduler)) {
+        cout << "❌ Failed to save schedule" << endl;
+        success = false;
+    }
+    
+    if (!FileManager::saveCommunity(communityNetwork, communitySetup)) {
+        cout << "❌ Failed to save community" << endl;
+        success = false;
+    }
+    
+    if (success) {
+        cout << "✅ All data saved successfully!" << endl;
+    } else {
+        cout << "⚠️  Some data may not have been saved" << endl;
+    }
+}
+
+void EnergyOptimizationSystem::loadAllData() {
+    cout << "\n📂 Loading system data..." << endl;
+    bool success = true;
+    
+    if (!FileManager::loadDevices(deviceRegistry, deviceCount)) {
+        cout << "ℹ️  No device data found (first run)" << endl;
+    } else {
+        cout << "✅ Devices loaded: " << deviceCount << endl;
+    }
+    
+    if (!FileManager::loadHistory(historyTracker)) {
+        cout << "ℹ️  No history data found" << endl;
+    } else {
+        cout << "✅ History loaded" << endl;
+    }
+    
+    if (!FileManager::loadSchedule(scheduler)) {
+        cout << "ℹ️  No schedule data found" << endl;
+    } else {
+        cout << "✅ Schedule loaded" << endl;
+    }
+    
+    if (!FileManager::loadCommunity(communityNetwork, communitySetup)) {
+        cout << "ℹ️  No community data found" << endl;
+    } else {
+        cout << "✅ Community loaded" << endl;
+    }
+    
+    cout << "🚀 System ready!" << endl;
+}
+
 void EnergyOptimizationSystem::run() {
     int choice;
     
@@ -529,6 +540,8 @@ void EnergyOptimizationSystem::run() {
             case 8: generateReport(); break;
             case 9: requestEnergy(); break;
             case 10: viewCriticalDevices(); break;
+            case 11: saveAllData(); break;  // ← NEW
+            case 12: FileManager::generateReport(deviceRegistry, historyTracker, scheduler, maxLoadCapacity, deviceCount); break;  // ← NEW
             case 0:
                 cout << "\nThank you for using Energy Optimizer!" << endl;
                 return;
