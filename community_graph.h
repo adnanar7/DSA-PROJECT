@@ -23,7 +23,7 @@ struct Home {
         excessEnergy = prod - cons;
     }
     
-    void updateEnergy() {
+    void updateEnergy() {   // Recalculate excess energy
         excessEnergy = currentProduction - currentConsumption;
     }
 };

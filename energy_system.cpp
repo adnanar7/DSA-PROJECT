@@ -96,7 +96,7 @@ void EnergyOptimizationSystem::toggleDevice() {
     
     if ((*device)->status == "OFF") {
         // Check if turning ON will exceed capacity
-        float currentLoad = getCurrentTotalLoad();
+        float currentLoad = getCurrentTotalLoad();     // getting the total load of all devices
         float newLoad = currentLoad + (*device)->consumptionRate;
         
         if (newLoad > maxLoadCapacity) {
@@ -288,7 +288,7 @@ void EnergyOptimizationSystem::viewHistory() {
 
 void EnergyOptimizationSystem::scheduleDevice() {
     char id[50];
-    int timeHour, timeMinute, duration;  // ← ADDED timeMinute
+    int timeHour, timeMinute, duration; 
     
     cout << "\n--- Schedule Device ---" << endl;
     cout << "Device ID: ";
@@ -302,10 +302,10 @@ void EnergyOptimizationSystem::scheduleDevice() {
     
     cout << "Schedule time (hour 0-23): ";
     cin >> timeHour;
-    cout << "Schedule minute (0-59): ";  // ← NEW LINE
-    cin >> timeMinute;                     // ← NEW LINE
+    cout << "Schedule minute (0-59): "; 
+    cin >> timeMinute;                   
     
-    // Validate input                      // ← NEW BLOCK
+    // Validate input                   
     if (timeHour < 0 || timeHour > 23) {
         cout << "Invalid hour! Must be 0-23." << endl;
         return;
@@ -322,8 +322,8 @@ void EnergyOptimizationSystem::scheduleDevice() {
         (*device)->deviceID,
         (*device)->deviceName,
         timeHour,
-        timeMinute,  // ← NEW 4th parameter
-        duration,    // ← Now 5th parameter
+        timeMinute,
+        duration,   
         (*device)->priority,
         (*device)->isCritical
     );
@@ -334,7 +334,7 @@ void EnergyOptimizationSystem::scheduleDevice() {
     scheduler.enqueue(task);
     
     cout << "\nDevice scheduled successfully!" << endl;
-    cout << "Scheduled for: " << timeHour << ":"   // ← NEW LINES
+    cout << "Scheduled for: " << timeHour << ":"  
          << (timeMinute < 10 ? "0" : "") << timeMinute << endl;
     cout << "Priority in queue: " << task.priority << endl;
     if ((*device)->isCritical) {
@@ -356,13 +356,17 @@ void EnergyOptimizationSystem::viewSchedule() {
 void EnergyOptimizationSystem::setupCommunity() {
     cout << "\n--- Community Energy Setup ---" << endl;
     
-    Home* home1 = new Home(string("H001"), string("123 Main St"), 2000, 1500, 5000);
-    Home* home2 = new Home(string("H002"), string("456 Oak Ave"), 1000, 1800, 3000);
-    Home* home3 = new Home(string("H003"), string("789 Pine Rd"), 3000, 1200, 6000);
+    Home* home1 = new Home(string("H001"), string("123 St 7"), 2000, 1500, 5000);
+    Home* home2 = new Home(string("H002"), string("456 St 8"), 1000, 1800, 3000);
+    Home* home3 = new Home(string("H003"), string("789 St 9"), 3000, 1200, 6000);
+    Home* home4 = new Home(string("H004"), string("101 St 10"), 2500, 1600, 4000);
+    Home* home5 = new Home(string("H005"), string("202 St 11"), 1800, 1400, 5500);
     
     communityNetwork.addHome(home1);
     communityNetwork.addHome(home2);
     communityNetwork.addHome(home3);
+    communityNetwork.addHome(home4);
+    communityNetwork.addHome(home5);
     
     // ← NEW: Update H001 with real current consumption
     updateMyHomeConsumption();
@@ -370,10 +374,13 @@ void EnergyOptimizationSystem::setupCommunity() {
     communityNetwork.connectHomes(string("H001"), string("H002"), 0.5f);
     communityNetwork.connectHomes(string("H002"), string("H003"), 0.3f);
     communityNetwork.connectHomes(string("H001"), string("H003"), 0.8f);
+    communityNetwork.connectHomes(string("H003"), string("H004"), 0.6f);
+    communityNetwork.connectHomes(string("H004"), string("H005"), 0.4f);
+    communityNetwork.connectHomes(string("H001"), string("H004"), 1.2f);
     
     communitySetup = true;
     
-    cout << "Community network initialized with 3 homes." << endl;
+    cout << "Community network initialized with 5 homes." << endl;
     communityNetwork.displayCommunityStatus();
 }
 
@@ -424,28 +431,25 @@ void EnergyOptimizationSystem::checkAndExecuteScheduledTasks() {
     time_t now = time(0);
     struct tm* timeinfo = localtime(&now);
     int currentHour = timeinfo->tm_hour;
-    int currentMinute = timeinfo->tm_min;  // ← ADDED
+    int currentMinute = timeinfo->tm_min;  
     
-    // Check if any scheduled tasks are ready
     while (!scheduler.isEmpty()) {
         ScheduledTask task = scheduler.peek();
         
-        // Check if task time has passed or is now
-        // Compare hour first, then minute         // ← UPDATED BLOCK
         bool shouldExecute = false;
         if (task.scheduledTime < currentHour) {
-            shouldExecute = true;  // Task hour has passed
+            shouldExecute = true;  
         } else if (task.scheduledTime == currentHour && task.scheduledMinute <= currentMinute) {
-            shouldExecute = true;  // Same hour, minute has arrived
+            shouldExecute = true;  
         }
         
         if (shouldExecute) {
-            scheduler.dequeue();  // Remove from queue
+            scheduler.dequeue();  
             
-            // Find the device
+            
             Device** device = deviceRegistry.get(task.deviceID);
             if (device && (*device)->status == "OFF") {
-                // Check if we have capacity
+                
                 float currentLoad = getCurrentTotalLoad();
                 if (currentLoad + (*device)->consumptionRate <= maxLoadCapacity) {
                     (*device)->turnOn();
@@ -458,7 +462,6 @@ void EnergyOptimizationSystem::checkAndExecuteScheduledTasks() {
                 }
             }
         } else {
-            // Future tasks - stop checking
             break;
         }
     }
@@ -466,65 +469,65 @@ void EnergyOptimizationSystem::checkAndExecuteScheduledTasks() {
 
 // ← NEW: File handling implementations
 void EnergyOptimizationSystem::saveAllData() {
-    cout << "\n💾 Saving system data..." << endl;
+    cout << "\n  Saving system data..." << endl;
     bool success = true;
     
     if (!FileManager::saveDevices(deviceRegistry)) {
-        cout << "❌ Failed to save devices" << endl;
+        cout << "  Failed to save devices" << endl;
         success = false;
     }
     
     if (!FileManager::saveHistory(historyTracker)) {
-        cout << "❌ Failed to save history" << endl;
+        cout << "  Failed to save history" << endl;
         success = false;
     }
     
     if (!FileManager::saveSchedule(scheduler)) {
-        cout << "❌ Failed to save schedule" << endl;
+        cout << "  Failed to save schedule" << endl;
         success = false;
     }
     
     if (!FileManager::saveCommunity(communityNetwork, communitySetup)) {
-        cout << "❌ Failed to save community" << endl;
+        cout << "  Failed to save community" << endl;
         success = false;
     }
     
     if (success) {
-        cout << "✅ All data saved successfully!" << endl;
+        cout << "  All data saved successfully!" << endl;
     } else {
-        cout << "⚠️  Some data may not have been saved" << endl;
+        cout << "   Some data may not have been saved" << endl;
     }
 }
 
 void EnergyOptimizationSystem::loadAllData() {
-    cout << "\n📂 Loading system data..." << endl;
+    cout << "\n  Loading system data..." << endl;
     bool success = true;
     
     if (!FileManager::loadDevices(deviceRegistry, deviceCount)) {
-        cout << "ℹ️  No device data found (first run)" << endl;
+        cout << "  No device data found (first run)" << endl;
     } else {
-        cout << "✅ Devices loaded: " << deviceCount << endl;
+        cout << "  Devices loaded: " << deviceCount << endl;
     }
     
     if (!FileManager::loadHistory(historyTracker)) {
-        cout << "ℹ️  No history data found" << endl;
+        cout << "   No history data found" << endl;
     } else {
-        cout << "✅ History loaded" << endl;
+        cout << "  History loaded" << endl;
     }
     
     if (!FileManager::loadSchedule(scheduler)) {
-        cout << "ℹ️  No schedule data found" << endl;
+        cout << "   No schedule data found" << endl;
     } else {
-        cout << "✅ Schedule loaded" << endl;
+        cout << "  Schedule loaded" << endl;
     }
     
     if (!FileManager::loadCommunity(communityNetwork, communitySetup)) {
-        cout << "ℹ️  No community data found" << endl;
+        cout << "   No community data found" << endl;
     } else {
-        cout << "✅ Community loaded" << endl;
+        cout << "  Community loaded" << endl;
     }
     
-    cout << "🚀 System ready!" << endl;
+    cout << "  System ready!" << endl;
 }
 
 // ← NEW: Update home consumption when devices change
@@ -533,16 +536,16 @@ void EnergyOptimizationSystem::updateMyHomeConsumption() {
     
     Home** myHome = communityNetwork.getHome("H001");
     if (myHome && *myHome) {
-        float currentLoad = getCurrentTotalLoad();
-        (*myHome)->currentConsumption = currentLoad;
+        float currentLoad = getCurrentTotalLoad();   // total load of all devices 
+        (*myHome)->currentConsumption = currentLoad;   // total load of all devices 
         (*myHome)->updateEnergy();  // Recalculate excess energy
         
         // Optional: Show feedback
         if ((*myHome)->excessEnergy < 0) {
-            cout << "⚠️  Your home is consuming more than producing (" 
+            cout << "   Your home is consuming more than producing (" 
                  << -(*myHome)->excessEnergy << " W deficit)" << endl;
         } else {
-            cout << "✅ Your home has excess energy (" 
+            cout << "  Your home has excess energy (" 
                  << (*myHome)->excessEnergy << " W available)" << endl;
         }
     }
